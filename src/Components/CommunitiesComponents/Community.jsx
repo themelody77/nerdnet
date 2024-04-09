@@ -29,6 +29,8 @@ const CommunityDetailsBar = (props) => {
   const [editMode, setEditMode] = useState(false);
   const path = useLocation();
   const [trigger, setTrigger] = useState(false);
+  const [showTest, setShowTest] = useState(false);
+  const [navIndex, setNavIndex] = useState(0);
   const handleCommunityEditChange = async (e) => {
     e.stopPropagation();
     setEditedCommunityData({
@@ -172,7 +174,9 @@ const CommunityDetailsBar = (props) => {
   const AdminsDiv = () => {
     return (
       <div className="text-white flex flex-col items-center justify-center w-full my-1">
-        <p className="self-start bg-slate-500 rounded-lg p-1 text-xs">Created By</p>
+        <p className="self-start bg-slate-500 rounded-lg p-1 text-xs">
+          Created By
+        </p>
         <Link
           to={"/profile/" + founder?.email ?? user?.email}
           className="flex items-center justify-start m-2"
@@ -200,11 +204,116 @@ const CommunityDetailsBar = (props) => {
     coverPic: "",
     description: "",
   });
+
+const TestCreator = () => {
+  // Initial state for the quiz form
+  const [questionsForm, setQuestionsForm] = useState({
+    name: '',
+    questions: [
+      {
+        question: '',
+        options: [{ value: '', text: '' }],
+        ans: ''
+      }
+    ]
+  });
+
+  // Function to handle changes in the quiz form fields
+  const handleInputChange = (index, field, value) => {
+    const updatedQuestions = [...questionsForm.questions];
+    if (field === 'option') {
+      updatedQuestions[index].options[0].value = value;
+    } else {
+      updatedQuestions[index][field] = value;
+    }
+    setQuestionsForm({ ...questionsForm, questions: updatedQuestions });
+  };
+
+  // Function to add a new question to the quiz form
+  const addQuestion = () => {
+    setQuestionsForm({
+      ...questionsForm,
+      questions: [
+        ...questionsForm.questions,
+        {
+          question: '',
+          options: [{ value: '', text: '' }],
+          ans: ''
+        }
+      ]
+    });
+  };
+
+  // Function to handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log(questionsForm); // You can process the form data here (e.g., save to database)
+    // Reset the form after submission (optional)
+    setQuestionsForm({
+      name: '',
+      questions: [
+        {
+          question: '',
+          options: [{ value: '', text: '' }],
+          ans: ''
+        }
+      ]
+    });
+  };
+
   return (
+    <div className="community-aside p-2 w-fit flex items-center justify-start flex-col overflow-y-scroll text-white">
+      <h2>Create Quiz</h2>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="name">Quiz Name:</label>
+        <input
+          type="text"
+          id="name"
+          value={questionsForm.name}
+          onChange={(e) => handleInputChange(-1, 'name', e.target.value)}
+        />
+        {questionsForm.questions.map((question, index) => (
+          <div key={index}>
+            <label htmlFor={`question-${index}`}>Question {index + 1}:</label>
+            <input
+              type="text"
+              id={`question-${index}`}
+              value={question.question}
+              onChange={(e) => handleInputChange(index, 'question', e.target.value)}
+            />
+            <label htmlFor={`option-${index}`}>Option:</label>
+            <input
+              type="text"
+              id={`option-${index}`}
+              value={question.options[0].text}
+              onChange={(e) => handleInputChange(index, 'option', e.target.value)}
+            />
+            <label htmlFor={`ans-${index}`}>Correct Answer:</label>
+            <input
+              type="text"
+              id={`ans-${index}`}
+              value={question.ans}
+              onChange={(e) => handleInputChange(index, 'ans', e.target.value)}
+            />
+          </div>
+        ))}
+        <button type="button" onClick={addQuestion}>
+          Add Question
+        </button>
+        <button type="submit">Create Quiz</button>
+      </form>
+    </div>
+  );
+};
+  return navIndex == 0 ? (
     <div className="community-aside p-2 w-fit flex items-center justify-start flex-col overflow-y-scroll">
       <div className="img-holder flex items-end justify-end flex-col">
         <div className="community-cover p-1 rounded-lg bg-white opacity-60 hover:opacity-100">
-          <img alt="cover" className="object-contain" src={communityInfo.coverPic} />
+          <img
+            alt="cover"
+            className="object-contain"
+            src={communityInfo.coverPic}
+          />
         </div>
         <div className="community-dp p-1 m-2 absolute bg-white rounded-full">
           <img
@@ -249,8 +358,20 @@ const CommunityDetailsBar = (props) => {
               </div>
               <div className="flex items-center justify-around w-full gap-2">
                 <button
-                  className={`rounded-lg hover:scale-90 trans100  w-20 bg-white text-black font-bold p-1 ${(editedCommunityData.dp.length || editedCommunityData.coverPic.length || editedCommunityData.description.length) ? " opacity-100 " : " opacity-60 pointer-events-none "}`}
-                  disabled = {!(editedCommunityData.dp.length || editedCommunityData.coverPic.length || editedCommunityData.description.length)}
+                  className={`rounded-lg hover:scale-90 trans100  w-20 bg-white text-black font-bold p-1 ${
+                    editedCommunityData.dp.length ||
+                    editedCommunityData.coverPic.length ||
+                    editedCommunityData.description.length
+                      ? " opacity-100 "
+                      : " opacity-60 pointer-events-none "
+                  }`}
+                  disabled={
+                    !(
+                      editedCommunityData.dp.length ||
+                      editedCommunityData.coverPic.length ||
+                      editedCommunityData.description.length
+                    )
+                  }
                   onClick={handleCommunityEditSubmit}
                 >
                   Save
@@ -277,9 +398,31 @@ const CommunityDetailsBar = (props) => {
               </button>
             </div>
           )}
+          <div className="flex w-full items-center justify-start flex-col">
+            <button
+              onClick={() => {
+                setNavIndex(navIndex == 1 ? 0 : 1);
+              }}
+              className="py-0 h-8 w-full bg-white rounded-md hover:scale-95 trans100 m-2"
+            >
+              Add Test
+            </button>
+            <button
+              onClick={() => {
+                setNavIndex(navIndex == 2 ? 0 : 2);
+              }}
+              className="py-0 h-8 bg-white rounded-md hover:scale-95 trans100 m-2 w-full"
+            >
+              Scores
+            </button>
+          </div>
         </div>
       )}
     </div>
+  ) : navIndex == 1 ? (
+    <TestCreator />
+  ) : (
+    <></>
   );
 };
 export default function Community() {
