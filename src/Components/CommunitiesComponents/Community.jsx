@@ -491,7 +491,7 @@ const CommunityDetailsBar = (props) => {
         <div className="w-full flex items-center justify-around my-2">
           {questionsForm.questions.length < 5 && (
             <button
-              className="bg-yellow-400 trans100 text-black rounded-md hover:scale-90 mx-1"
+              className="bg-white trans100 text-black rounded-md hover:scale-90 mx-1"
               type="button"
               onClick={addQuestion}
             >
@@ -499,11 +499,12 @@ const CommunityDetailsBar = (props) => {
             </button>
           )}
           <button
-            className="bg-white trans100 text-black rounded-md hover:scale-90 mx-1"
+            className="bg-yellow-400 trans100 text-black rounded-md hover:scale-90 mx-1"
             type="submit"
           >
             Create Quiz
           </button>
+          <button className="bg-white trans100 text-black rounded-md hover:scale-90 mx-1" onClick={()=>{setNavIndex(0)}}>Back</button>
         </div>
       </form>
     </div>
@@ -519,6 +520,10 @@ export default function Community() {
   const [communityPosts, setCommunityPosts] = useState([]);
   const [isAFollower, setIsAFollower] = useState(false);
   const { socket } = useContext(socketContextProvider);
+  const [score, setScore] = useState(0);
+  const [assignmentData,setAssignmentData] = useState(null);
+  const [communityData,setCommunityData] = useState({});
+  const [showTest,setShowTest] = useState(false);
   useEffect(() => {
     const GetCommunityPosts = async () => {
       try {
@@ -528,8 +533,10 @@ export default function Community() {
             id: community_id,
           },
           (response) => {
+            console.log(response)
             if (response.status) {
               setCommunityPosts(response.community_info.posts);
+              setCommunityData(response.community_info);
               setContentReady(true);
             } else {
               setCommunityPosts([]);
@@ -567,7 +574,106 @@ export default function Community() {
       socket.off("get-community-details");
     };
   }, []);
+  const fetchTestData = async(test_id)=>{
+    try {
+      const response = (await axios.post(process.env.REACT_APP_BACKEND_URL+"/assessments/get-assessment",{
+        assessment_id : test_id
+      })).data;
+      if(response.status){
+        setAssignmentData(response.assessment);
+      }
+      else{
+        toast.error("Error Getting Test data!", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error Getting Test data!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
+    }
+  }
   const [contentReady, setContentReady] = useState(false);
+  const [userSelections, setUserSelections] = useState(Array(assignmentData?.questions?.length).fill('')); // Array to store user's selected options
+  const handleSelectChange = (index, selectedValue) => {
+    const updatedSelections = [...userSelections];
+    updatedSelections[index] = selectedValue;
+    setUserSelections(updatedSelections);
+  };
+  const handleSubmit = async(e) => {
+    e.preventDefault();
+    // Calculate the score based on user selections
+    assignmentData?.questions?.forEach((q, index) => {
+      if (userSelections[index] === q?.ans) { // Use strict equality (===) for comparison
+        console.log(userSelections[index] === q?.ans)
+        setScore(score+1);
+        console.log('Score incremented:', score);
+      }
+      else{
+
+      }
+    });
+    try {
+      const response = (await axios.post(process.env.REACT_APP_BACKEND_URL+"/assessments/write-score",{
+        user : user._id,
+        assessment_id : assignmentData._id,
+        score : score,
+        outOf : assignmentData.questions.length
+      })).data;
+      if(response.status == true){
+        toast.success(`You got ${score}/${assignmentData?.questions?.length??100}`, {
+          position: "top-right",
+          autoClose: 10000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
+      }
+      else{
+        toast.error("Error updating test!", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
+      }
+      
+    } catch (error) {
+      console.log(error);
+      toast.error("Error submitting test!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+      });
+    }
+  }
   return (
     <div className="w-screen h-screen">
       <Header />
@@ -575,7 +681,24 @@ export default function Community() {
       {isMobile ? <MiniNavBar /> : null}
       <div className="flex items-center justify-start">
         <CommunityDetailsBar community_id={community_id} />
-        {contentReady && isAFollower ? (
+        {showTest ? 
+        assignmentData!=null && 
+        <div className="flex flex-col text-white items-center justify-start flex-1">
+          <h6 className="text-2xl text-white p-2 rounded-md">{assignmentData?.name}</h6>
+          <div className="flex items-center justify-center flex-wrap w-1/2">
+          {assignmentData?.questions?.map((q,i)=>(
+            <div className="m-2 p-2 rounded-md bg-slate-500">
+              <p className="text-xl">Q<sub>{i+1}</sub>- {q?.question}</p>
+              <select className="bg-black text-white m-2 outline-none" onChange={(e) => handleSelectChange(i, e.target.value)}>
+                {q?.options.map((opt,j)=>(
+                  <option className="w-full">{opt?.text}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          </div>
+          <button className="bg-yellow-400 text-black outline-none p-2 rounded-lg" onClick={handleSubmit}>Submit</button>
+        </div> : contentReady && isAFollower ? (
           <div
             id="community-feed-scroller"
             className="flex-1 flex flex-col items-center justify-center"
@@ -593,6 +716,12 @@ export default function Community() {
         )}
       </div>
       <AddPostBtn />
+      {communityData?.assessments?.length && <div className="bg-red absolute top-0 bottom-0 my-auto right-0 test-scroller w-fit text-white flex flex-col items-center justify-start">
+        <h6 className="text-lg">Latest Tests!</h6>
+        {communityData.assessments.map((test,i)=>(
+          <button onClick={()=>{setShowTest(true);fetchTestData(test._id)}} className="text-left w-full">{test.name}</button>
+        ))}
+      </div>}
     </div>
   );
 }

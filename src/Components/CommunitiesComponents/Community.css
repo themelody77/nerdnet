@@ -16,6 +16,11 @@
 .community-cover img{
     height: 25dvh!important;
 }
+.test-scroller{
+    height: fit-content;
+    max-height: 45dvh;
+    overflow-y: scroll;
+}
 .community-description{
     width: 100%;
 }
