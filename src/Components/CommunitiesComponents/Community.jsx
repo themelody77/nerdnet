@@ -204,107 +204,127 @@ const CommunityDetailsBar = (props) => {
     coverPic: "",
     description: "",
   });
-
-const TestCreator = () => {
-  // Initial state for the quiz form
   const [questionsForm, setQuestionsForm] = useState({
-    name: '',
+    community : props.community_id,
+    name: "",
     questions: [
       {
-        question: '',
-        options: [{ value: '', text: '' }],
-        ans: ''
-      }
-    ]
+        question: "",
+        options: [
+          { value: "", text: "" },
+          { value: "", text: "" },
+          { value: "", text: "" },
+          { value: "", text: "" },
+        ],
+        ans: "",
+      },
+    ],
   });
 
-  // Function to handle changes in the quiz form fields
-  const handleInputChange = (index, field, value) => {
+  const handleInputChange = (index, field, value, optIndex) => {
     const updatedQuestions = [...questionsForm.questions];
-    if (field === 'option') {
-      updatedQuestions[index].options[0].value = value;
+    if (field === "option") {
+      updatedQuestions[index].options[optIndex].text = value;
     } else {
       updatedQuestions[index][field] = value;
     }
     setQuestionsForm({ ...questionsForm, questions: updatedQuestions });
   };
 
-  // Function to add a new question to the quiz form
   const addQuestion = () => {
-    setQuestionsForm({
-      ...questionsForm,
-      questions: [
-        ...questionsForm.questions,
-        {
-          question: '',
-          options: [{ value: '', text: '' }],
-          ans: ''
-        }
-      ]
-    });
+    if (questionsForm.questions.length < 5) {
+      // Limit to 5 questions
+      setQuestionsForm({
+        ...questionsForm,
+        questions: [
+          ...questionsForm.questions,
+          {
+            question: "",
+            options: [
+              { value: "", text: "" },
+              { value: "", text: "" },
+              { value: "", text: "" },
+              { value: "", text: "" },
+            ],
+            ans: "",
+          },
+        ],
+      });
+    }
   };
 
-  // Function to handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log(questionsForm); // You can process the form data here (e.g., save to database)
-    // Reset the form after submission (optional)
+    // Validate that all questions are filled out
+    const isFormValid = questionsForm.questions.every(
+      (question) =>
+        question.question && // Ensure question is not empty
+        question.options.every((option) => option.text) && // Ensure all option texts are filled
+        question.ans // Ensure answer is provided
+    );
+
+    if (!isFormValid) {
+      alert("Please fill out all questions, options, and answers.");
+      return;
+    }
+    try {
+      const response = (await axios.post(process.env.REACT_APP_BACKEND_URL+"/assessments/create-assessment",questionsForm)).data;
+      if(response.status){
+        toast.success('Assingment added!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          });
+      }
+      else{
+        toast.error("Error creating test", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          });
+      }
+    } catch (error) {
+      toast.error("Error creating test", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+        });
+    }
+
+    // Reset the form after submission
     setQuestionsForm({
-      name: '',
+      name: "",
+      community : props.community_id,
       questions: [
         {
-          question: '',
-          options: [{ value: '', text: '' }],
-          ans: ''
-        }
-      ]
+          question: "",
+          options: [
+            { text: "" },
+            { text: "" },
+            { text: "" },
+            { text: "" },
+          ],
+          ans: "",
+        },
+      ],
     });
   };
 
-  return (
-    <div className="community-aside p-2 w-fit flex items-center justify-start flex-col overflow-y-scroll text-white">
-      <h2>Create Quiz</h2>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="name">Quiz Name:</label>
-        <input
-          type="text"
-          id="name"
-          value={questionsForm.name}
-          onChange={(e) => handleInputChange(-1, 'name', e.target.value)}
-        />
-        {questionsForm.questions.map((question, index) => (
-          <div key={index}>
-            <label htmlFor={`question-${index}`}>Question {index + 1}:</label>
-            <input
-              type="text"
-              id={`question-${index}`}
-              value={question.question}
-              onChange={(e) => handleInputChange(index, 'question', e.target.value)}
-            />
-            <label htmlFor={`option-${index}`}>Option:</label>
-            <input
-              type="text"
-              id={`option-${index}`}
-              value={question.options[0].text}
-              onChange={(e) => handleInputChange(index, 'option', e.target.value)}
-            />
-            <label htmlFor={`ans-${index}`}>Correct Answer:</label>
-            <input
-              type="text"
-              id={`ans-${index}`}
-              value={question.ans}
-              onChange={(e) => handleInputChange(index, 'ans', e.target.value)}
-            />
-          </div>
-        ))}
-        <button type="button" onClick={addQuestion}>
-          Add Question
-        </button>
-        <button type="submit">Create Quiz</button>
-      </form>
-    </div>
-  );
-};
   return navIndex == 0 ? (
     <div className="community-aside p-2 w-fit flex items-center justify-start flex-col overflow-y-scroll">
       <div className="img-holder flex items-end justify-end flex-col">
@@ -420,7 +440,73 @@ const TestCreator = () => {
       )}
     </div>
   ) : navIndex == 1 ? (
-    <TestCreator />
+    <div className="community-aside p-2 w-fit flex items-center justify-start flex-col overflow-y-scroll text-white">
+      <h2 className="w-full text-center">Create Quiz</h2>
+      <form onSubmit={handleSubmit} className="test-form">
+        <input
+          type="text"
+          value={questionsForm.name}
+          onChange={(e) =>
+            setQuestionsForm({ ...questionsForm, name: e.target.value })
+          }
+          className="bg-white text-black font-bold"
+          placeholder="Enter assessment name"
+          required
+        />
+        {questionsForm.questions.map((question, index) => (
+          <div key={index}>
+            <input
+              type="text"
+              value={question.question}
+              onChange={(e) =>
+                handleInputChange(index, "question", e.target.value)
+              }
+              placeholder={`Enter question ${index + 1}`}
+              className="bg-white text-black font-bold"
+              required
+            />
+            {[0, 1, 2, 3].map((optIndex) => (
+              <input
+                key={optIndex}
+                type="text"
+                value={question.options[optIndex].text}
+                onChange={(e) =>
+                  handleInputChange(index, "option", e.target.value, optIndex)
+                }
+                placeholder={`Enter option ${optIndex + 1}`}
+                className="bg-white text-black font-bold"
+                required
+              />
+            ))}
+            <input
+              type="text"
+              value={question.ans}
+              onChange={(e) => handleInputChange(index, "ans", e.target.value)}
+              placeholder={`Enter answer for question ${index + 1}`}
+              className="bg-white text-black font-bold"
+              required
+            />
+          </div>
+        ))}
+        <div className="w-full flex items-center justify-around my-2">
+          {questionsForm.questions.length < 5 && (
+            <button
+              className="bg-yellow-400 trans100 text-black rounded-md hover:scale-90 mx-1"
+              type="button"
+              onClick={addQuestion}
+            >
+              Add Question
+            </button>
+          )}
+          <button
+            className="bg-white trans100 text-black rounded-md hover:scale-90 mx-1"
+            type="submit"
+          >
+            Create Quiz
+          </button>
+        </div>
+      </form>
+    </div>
   ) : (
     <></>
   );
